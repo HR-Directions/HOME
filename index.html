@@ -1,431 +1,340 @@
-```react
-import React, { useState, useEffect } from 'react';
 
-// إعدادات الروابط
-const GENERAL_LINKS = [
-  { id: 'report', title: 'التقرير العام', url: 'https://hr-directions.github.io/Test/', icon: '📊' },
-  { id: 'transfers_statement', title: 'كشف حساب التحويلات', url: 'https://hr-directions.github.io/Test3/', icon: '💰' },
-  { id: 'shift_reg', title: 'تسجيل الشيفت', url: 'https://hr-directions.github.io/Treasury-handover/', icon: '📝' },
-];
-
-const ADMIN_LINKS = [
-  { id: 'employees', title: 'إدارة الموظفين', url: 'https://hr-directions.github.io/Test7/', icon: '👥' },
-  { id: 'transfers_admin', title: 'إدارة التحويلات', url: 'https://hr-directions.github.io/Test6/', icon: '🔄' },
-  { id: 'data_admin', title: 'إدارة البيانات', url: 'https://hr-directions.github.io/Test5/', icon: '📂' },
-  { id: 'overstock', title: 'توزيع الاوفر ستوك', url: 'https://hr-directions.github.io/Test2/', icon: '📦' },
-  { id: 'hours', title: 'احتساب ساعات الموظفين', url: 'https://hr-directions.github.io/Test4/', icon: '⏱️' },
-];
-
-const DB_URL = "https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches.json";
-
-export default function App() {
-  const [view, setView] = useState('login'); // login, change_password, dashboard
-  const [currentUser, setCurrentUser] = useState(null);
-  
-  // Dashboard States
-  const [activeSection, setActiveSection] = useState('general'); // general, admin
-  const [activePage, setActivePage] = useState(GENERAL_LINKS[0]);
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Auth States
-  const [authCode, setAuthCode] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Change Password States
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-
-  // --------------------------------------------------------
-  // وظائف تسجيل الدخول والتحقق
-  // --------------------------------------------------------
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(DB_URL);
-      const data = await response.json();
-      
-      if (!data) {
-        setAuthError('قاعدة البيانات فارغة أو غير متاحة.');
-        setIsLoading(false);
-        return;
-      }
-
-      let foundUser = null;
-      let userId = null;
-
-      // البحث عن المستخدم باستخدام الكود وكلمة المرور
-      for (const [key, user] of Object.entries(data)) {
-        if (user.code === authCode && user.password === authPassword) {
-          foundUser = user;
-          userId = key;
-          break;
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الإدارة المتكامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
         }
-      }
-
-      if (foundUser) {
-        setCurrentUser({ ...foundUser, id: userId });
-        setView('dashboard');
-        setActivePage(GENERAL_LINKS[0]);
-        setActiveSection('general');
-      } else {
-        setAuthError('كود الموظف أو كلمة المرور غير صحيحة.');
-      }
-    } catch (error) {
-      setAuthError('حدث خطأ أثناء الاتصال بقاعدة البيانات.');
-      console.error(error);
-    }
-
-    setIsLoading(false);
-  };
-
-  // --------------------------------------------------------
-  // وظائف تغيير كلمة المرور
-  // --------------------------------------------------------
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    setSuccessMsg('');
-
-    if (newPassword !== confirmPassword) {
-      setAuthError('كلمات المرور الجديدة غير متطابقة.');
-      return;
-    }
-
-    if (newPassword.length < 4) {
-      setAuthError('كلمة المرور يجب أن تكون 4 رموز على الأقل.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // 1. التحقق من المستخدم الحالي أولاً
-      const response = await fetch(DB_URL);
-      const data = await response.json();
-      
-      let userId = null;
-      for (const [key, user] of Object.entries(data)) {
-        if (user.code === authCode && user.password === authPassword) {
-          userId = key;
-          break;
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
         }
-      }
+        .iframe-container {
+            height: calc(100vh - 64px);
+        }
+        /* Loader Animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
 
-      if (!userId) {
-        setAuthError('بيانات الدخول القديمة (الكود أو كلمة المرور) غير صحيحة.');
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. تحديث كلمة المرور
-      const updateUrl = `https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches/${userId}.json`;
-      const updateResponse = await fetch(updateUrl, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: newPassword,
-          lastUpdate: new Date().toISOString()
-        })
-      });
-
-      if (updateResponse.ok) {
-        setSuccessMsg('تم تحديث كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
-        setTimeout(() => {
-          setView('login');
-          setAuthPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setSuccessMsg('');
-        }, 3000);
-      } else {
-        setAuthError('حدث خطأ أثناء تحديث كلمة المرور.');
-      }
-    } catch (error) {
-      setAuthError('حدث خطأ أثناء الاتصال بالخادم.');
-    }
-
-    setIsLoading(false);
-  };
-
-  // --------------------------------------------------------
-  // الشاشات والتصميمات
-  // --------------------------------------------------------
-
-  // 1. شاشة تسجيل الدخول / تغيير كلمة المرور
-  if (view === 'login' || view === 'change_password') {
-    return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-100 font-sans p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-indigo-600 p-6 text-center">
-            <h2 className="text-2xl font-bold text-white">
-              {view === 'login' ? 'تسجيل الدخول للنظام' : 'تحديث كلمة المرور'}
-            </h2>
-            <p className="text-indigo-200 mt-2 text-sm">
-              {view === 'login' ? 'أدخل كود الموظف وكلمة المرور للمتابعة' : 'أدخل بياناتك القديمة لتتمكن من التحديث'}
-            </p>
-          </div>
-          
-          <div className="p-8">
-            {authError && (
-              <div className="mb-4 bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200">
-                {authError}
-              </div>
-            )}
-            {successMsg && (
-              <div className="mb-4 bg-green-50 text-green-700 p-3 rounded-lg text-sm border border-green-200">
-                {successMsg}
-              </div>
-            )}
-
-            <form onSubmit={view === 'login' ? handleLogin : handleChangePassword} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">كود الموظف</label>
-                <input
-                  type="text"
-                  required
-                  value={authCode}
-                  onChange={(e) => setAuthCode(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-                  placeholder="أدخل الكود الخاص بك"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {view === 'login' ? 'كلمة المرور' : 'كلمة المرور الحالية'}
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {view === 'change_password' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
-                    <input
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
-                    <input
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </>
-              )}
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition-colors flex justify-center items-center mt-2 disabled:opacity-70"
-              >
-                {isLoading ? (
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                ) : (
-                  view === 'login' ? 'تسجيل الدخول' : 'تحديث البيانات'
-                )}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center">
-              {view === 'login' ? (
-                <button 
-                  onClick={() => { setView('change_password'); setAuthError(''); }}
-                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  نسيت كلمة المرور / تغيير كلمة المرور؟
-                </button>
-              ) : (
-                <button 
-                  onClick={() => { setView('login'); setAuthError(''); setSuccessMsg(''); }}
-                  className="text-sm text-gray-500 hover:text-gray-800 font-medium"
-                >
-                  العودة لتسجيل الدخول
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 2. لوحة التحكم (Dashboard)
-  const isReviewer = currentUser?.type === 'مراجع';
-  const currentLinks = activeSection === 'general' ? GENERAL_LINKS : ADMIN_LINKS;
-
-  const handlePageChange = (page) => {
-    setIframeLoading(true);
-    setActivePage(page);
-    setSidebarOpen(false); // Close sidebar on mobile after selection
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setAuthCode('');
-    setAuthPassword('');
-    setView('login');
-  };
-
-  return (
-    <div dir="rtl" className="flex h-screen bg-slate-50 font-sans overflow-hidden">
-      
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 right-0 w-72 bg-slate-900 text-slate-300 z-30 transform transition-transform duration-300 ease-in-out flex flex-col ${sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
-        
-        {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-center border-b border-slate-800 bg-slate-950">
-          <h1 className="text-xl font-bold text-white tracking-wide">نظام الإدارة الشامل</h1>
-        </div>
-
-        {/* User Info */}
-        <div className="p-5 border-b border-slate-800 bg-slate-900/50">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-              {currentUser?.name.charAt(0)}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-white">{currentUser?.name}</p>
-              <p className="text-xs text-slate-400 mt-1">{currentUser?.type || 'مستخدم'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Sections */}
-        <div className="flex-1 overflow-y-auto py-4">
-          
-          {/* Tabs for switching sections */}
-          <div className="px-4 mb-4 flex space-x-2 space-x-reverse">
-            <button
-              onClick={() => { setActiveSection('general'); handlePageChange(GENERAL_LINKS[0]); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeSection === 'general' ? 'bg-indigo-600 text-white' : 'bg-slate-800 hover:bg-slate-700'}`}
-            >
-              الرئيسية
-            </button>
-            {isReviewer && (
-              <button
-                onClick={() => { setActiveSection('admin'); handlePageChange(ADMIN_LINKS[0]); }}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeSection === 'admin' ? 'bg-indigo-600 text-white' : 'bg-slate-800 hover:bg-slate-700'}`}
-              >
-                الإداريات
-              </button>
-            )}
-          </div>
-
-          <div className="px-3">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">
-              {activeSection === 'general' ? 'قائمة الصفحات العامة' : 'صفحات الإدارة والتحكم'}
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-indigo-600 p-6 text-center">
+                <h2 id="auth-title" class="text-2xl font-bold text-white">تسجيل الدخول للنظام</h2>
+                <p id="auth-subtitle" class="text-indigo-200 mt-2 text-sm">أدخل كود الموظف وكلمة المرور للمتابعة</p>
             </div>
             
-            <ul className="space-y-1">
-              {currentLinks.map((link) => (
-                <li key={link.id}>
-                  <button
-                    onClick={() => handlePageChange(link)}
-                    className={`w-full flex items-center space-x-3 space-x-reverse px-3 py-2.5 rounded-lg transition-colors text-right ${activePage.id === link.id ? 'bg-indigo-600/10 text-indigo-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                  >
-                    <span className="text-lg">{link.icon}</span>
-                    <span className="font-medium text-sm">{link.title}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+            <div class="p-8">
+                <div id="auth-error" class="hidden mb-4 bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200"></div>
+                <div id="auth-success" class="hidden mb-4 bg-green-50 text-green-700 p-3 rounded-lg text-sm border border-green-200"></div>
 
-        {/* Logout Button */}
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 space-x-reverse px-4 py-2.5 bg-slate-800 hover:bg-red-600 hover:text-white text-slate-300 rounded-lg transition-colors text-sm font-medium"
-          >
-            <span>🚪</span>
-            <span>تسجيل الخروج</span>
-          </button>
-        </div>
-      </div>
+                <form id="auth-form" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">كود الموظف</label>
+                        <input type="text" id="auth-code" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="أدخل الكود الخاص بك">
+                    </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        
-        {/* Top Navbar */}
-        <header className="h-16 bg-white shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 border-b border-gray-200">
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-500 hover:text-gray-700 ml-4 focus:outline-none"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h2 className="text-lg font-bold text-gray-800 truncate flex items-center">
-              <span className="mr-2 text-indigo-600">{activePage.icon}</span>
-              {activePage.title}
-            </h2>
-          </div>
-          
-          <div className="flex items-center">
-             <div className="text-sm text-gray-500 flex items-center bg-gray-100 px-3 py-1.5 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-green-500 ml-2"></span>
-                متصل
-             </div>
-          </div>
-        </header>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الحالية</label>
+                        <input type="password" id="auth-pass" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+                    </div>
 
-        {/* Iframe Container */}
-        <main className="flex-1 relative bg-gray-50">
-          {iframeLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
-              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-500 text-sm font-medium animate-pulse">جاري تحميل الصفحة...</p>
+                    <div id="change-pass-fields" class="hidden space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
+                            <input type="password" id="new-pass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
+                            <input type="password" id="confirm-pass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="auth-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition-colors flex justify-center items-center">
+                        تسجيل الدخول
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <button id="toggle-view" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                        تغيير كلمة المرور؟
+                    </button>
+                </div>
             </div>
-          )}
-          <iframe
-            src={activePage.url}
-            title={activePage.title}
-            className={`w-full h-full border-0 transition-opacity duration-500 ${iframeLoading ? 'opacity-0' : 'opacity-100'}`}
-            onLoad={() => setIframeLoading(false)}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          />
-        </main>
-      </div>
-      
+        </div>
     </div>
-  );
-}
 
-```
+    <!-- Dashboard Screen (Hidden by default) -->
+    <div id="dashboard-screen" class="hidden flex h-screen bg-slate-50 overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 right-0 w-72 bg-slate-900 text-slate-300 z-30 transform translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 flex items-center justify-center border-b border-slate-800 bg-slate-950">
+                <h1 class="text-xl font-bold text-white tracking-wide">لوحة التحكم</h1>
+            </div>
+
+            <div class="p-5 border-b border-slate-800 bg-slate-900/50">
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div id="user-avatar" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">م</div>
+                    <div>
+                        <p id="user-name" class="text-sm font-medium text-white truncate w-40"></p>
+                        <p id="user-role" class="text-xs text-slate-400 mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-4 flex space-x-2 space-x-reverse">
+                    <button id="btn-general" class="flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white">الرئيسية</button>
+                    <button id="btn-admin" class="hidden flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700">الإداريات</button>
+                </div>
+
+                <div class="px-3">
+                    <ul id="nav-list" class="space-y-1">
+                        <!-- Links injected here by JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800">
+                <button id="logout-btn" class="w-full flex items-center justify-center space-x-2 space-x-reverse px-4 py-2.5 bg-slate-800 hover:bg-red-600 hover:text-white rounded-lg transition-colors text-sm font-medium">
+                    <span>🚪</span> <span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 lg:px-8 border-b border-gray-200">
+                <div class="flex items-center">
+                    <button id="mobile-toggle" class="lg:hidden text-gray-500 hover:text-gray-700 ml-4 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                    <h2 id="page-title" class="text-lg font-bold text-gray-800">الرئيسية</h2>
+                </div>
+                <div class="text-sm text-gray-500 flex items-center bg-gray-100 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-green-500 ml-2"></span> متصل
+                </div>
+            </header>
+
+            <main class="flex-1 relative bg-gray-100">
+                <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 hidden">
+                    <div class="loader mb-4"></div>
+                    <p class="text-gray-500 text-sm font-medium">جاري التحميل...</p>
+                </div>
+                <iframe id="main-iframe" src="about:blank" class="w-full h-full border-0"></iframe>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const DB_URL = "https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches.json";
+        
+        const GENERAL_LINKS = [
+            { id: 'report', title: 'التقرير العام', url: 'https://hr-directions.github.io/Test/', icon: '📊' },
+            { id: 'transfers_statement', title: 'كشف حساب التحويلات', url: 'https://hr-directions.github.io/Test3/', icon: '💰' },
+            { id: 'shift_reg', title: 'تسجيل الشيفت', url: 'https://hr-directions.github.io/Treasury-handover/', icon: '📝' },
+        ];
+
+        const ADMIN_LINKS = [
+            { id: 'employees', title: 'إدارة الموظفين', url: 'https://hr-directions.github.io/Test7/', icon: '👥' },
+            { id: 'transfers_admin', title: 'إدارة التحويلات', url: 'https://hr-directions.github.io/Test6/', icon: '🔄' },
+            { id: 'data_admin', title: 'إدارة البيانات', url: 'https://hr-directions.github.io/Test5/', icon: '📂' },
+            { id: 'overstock', title: 'توزيع الاوفر ستوك', url: 'https://hr-directions.github.io/Test2/', icon: '📦' },
+            { id: 'hours', title: 'احتساب ساعات الموظفين', url: 'https://hr-directions.github.io/Test4/', icon: '⏱️' },
+        ];
+
+        let currentUser = null;
+        let isChangePassView = false;
+        let activeSection = 'general';
+
+        // Elements
+        const loginScreen = document.getElementById('login-screen');
+        const dashScreen = document.getElementById('dashboard-screen');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authSubtitle = document.getElementById('auth-subtitle');
+        const changePassFields = document.getElementById('change-pass-fields');
+        const toggleBtn = document.getElementById('toggle-view');
+        const authBtn = document.getElementById('auth-btn');
+        const authError = document.getElementById('auth-error');
+        const authSuccess = document.getElementById('auth-success');
+        const iframe = document.getElementById('main-iframe');
+        const iframeLoader = document.getElementById('iframe-loader');
+
+        // Toggle Login / Change Password
+        toggleBtn.addEventListener('click', () => {
+            isChangePassView = !isChangePassView;
+            authError.classList.add('hidden');
+            authSuccess.classList.add('hidden');
+            
+            if (isChangePassView) {
+                authTitle.innerText = "تحديث كلمة المرور";
+                authSubtitle.innerText = "أدخل بياناتك الحالية لتتمكن من التغيير";
+                changePassFields.classList.remove('hidden');
+                authBtn.innerText = "تحديث البيانات";
+                toggleBtn.innerText = "العودة لتسجيل الدخول";
+            } else {
+                authTitle.innerText = "تسجيل الدخول للنظام";
+                authSubtitle.innerText = "أدخل كود الموظف وكلمة المرور للمتابعة";
+                changePassFields.classList.add('hidden');
+                authBtn.innerText = "تسجيل الدخول";
+                toggleBtn.innerText = "تغيير كلمة المرور؟";
+            }
+        });
+
+        // Auth Logic
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authError.classList.add('hidden');
+            const code = document.getElementById('auth-code').value;
+            const pass = document.getElementById('auth-pass').value;
+            
+            authBtn.disabled = true;
+            authBtn.innerHTML = '<span class="loader" style="width:20px; height:20px; border-width:2px"></span>';
+
+            try {
+                const response = await fetch(DB_URL);
+                const data = await response.json();
+                let userKey = null;
+                let userObj = null;
+
+                for (const [key, val] of Object.entries(data)) {
+                    if (val.code === code && val.password === pass) {
+                        userKey = key;
+                        userObj = val;
+                        break;
+                    }
+                }
+
+                if (!userObj) {
+                    throw new Error("بيانات الدخول غير صحيحة");
+                }
+
+                if (isChangePassView) {
+                    const newP = document.getElementById('new-pass').value;
+                    const confirmP = document.getElementById('confirm-pass').value;
+                    if (newP !== confirmP) throw new Error("كلمات المرور غير متطابقة");
+                    if (newP.length < 4) throw new Error("كلمة المرور قصيرة جداً");
+
+                    await fetch(`https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches/${userKey}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ password: newP, lastUpdate: new Date().toISOString() })
+                    });
+                    
+                    authSuccess.innerText = "تم تحديث كلمة المرور بنجاح!";
+                    authSuccess.classList.remove('hidden');
+                    setTimeout(() => toggleBtn.click(), 2000);
+                } else {
+                    currentUser = userObj;
+                    initDashboard();
+                }
+            } catch (err) {
+                authError.innerText = err.message;
+                authError.classList.remove('hidden');
+            } finally {
+                authBtn.disabled = false;
+                authBtn.innerText = isChangePassView ? "تحديث البيانات" : "تسجيل الدخول";
+            }
+        });
+
+        function initDashboard() {
+            loginScreen.classList.add('hidden');
+            dashScreen.classList.remove('hidden');
+            document.getElementById('user-name').innerText = currentUser.name;
+            document.getElementById('user-role').innerText = currentUser.type;
+            document.getElementById('user-avatar').innerText = currentUser.name.charAt(0);
+
+            if (currentUser.type === 'مراجع') {
+                document.getElementById('btn-admin').classList.remove('hidden');
+            }
+
+            renderLinks(GENERAL_LINKS);
+            loadPage(GENERAL_LINKS[0]);
+        }
+
+        function renderLinks(links) {
+            const list = document.getElementById('nav-list');
+            list.innerHTML = '';
+            links.forEach(link => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <button class="nav-item w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-lg transition-colors text-right hover:bg-slate-800" data-id="${link.id}">
+                        <span class="text-lg">${link.icon}</span>
+                        <span class="font-medium text-sm">${link.title}</span>
+                    </button>
+                `;
+                li.querySelector('button').onclick = () => loadPage(link);
+                list.appendChild(li);
+            });
+        }
+
+        function loadPage(link) {
+            document.getElementById('page-title').innerText = link.title;
+            iframeLoader.classList.remove('hidden');
+            iframe.src = link.url;
+            iframe.onload = () => iframeLoader.classList.add('hidden');
+            
+            // Highlight active
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                if (btn.dataset.id === link.id) {
+                    btn.classList.add('bg-indigo-600', 'text-white');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                }
+            });
+
+            // Close mobile sidebar
+            document.getElementById('sidebar').classList.add('translate-x-full');
+        }
+
+        // Section Switchers
+        document.getElementById('btn-general').onclick = () => {
+            activeSection = 'general';
+            document.getElementById('btn-general').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white';
+            document.getElementById('btn-admin').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300';
+            renderLinks(GENERAL_LINKS);
+            loadPage(GENERAL_LINKS[0]);
+        };
+
+        document.getElementById('btn-admin').onclick = () => {
+            activeSection = 'admin';
+            document.getElementById('btn-admin').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white';
+            document.getElementById('btn-general').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300';
+            renderLinks(ADMIN_LINKS);
+            loadPage(ADMIN_LINKS[0]);
+        };
+
+        // Mobile Toggle
+        document.getElementById('mobile-toggle').onclick = () => {
+            document.getElementById('sidebar').classList.toggle('translate-x-full');
+        };
+
+        // Logout
+        document.getElementById('logout-btn').onclick = () => {
+            location.reload();
+        };
+
+    </script>
+</body>
+</html>
 
