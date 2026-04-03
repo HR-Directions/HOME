@@ -15,9 +15,6 @@
         .sidebar-transition {
             transition: transform 0.3s ease-in-out;
         }
-        .iframe-container {
-            height: calc(100vh - 64px);
-        }
         /* Loader Animation */
         .loader {
             border: 4px solid #f3f3f3;
@@ -30,6 +27,12 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        /* Active Link Style */
+        .nav-active {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
     </style>
 </head>
@@ -59,12 +62,12 @@
                     </div>
 
                     <div id="change-pass-fields" class="hidden space-y-5">
-                        <div>
+                        <div class="border-t pt-4 mt-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
                             <input type="password" id="new-pass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور الجديدة</label>
                             <input type="password" id="confirm-pass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
                         </div>
                     </div>
@@ -75,7 +78,7 @@
                 </form>
 
                 <div class="mt-6 text-center">
-                    <button id="toggle-view" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                    <button id="toggle-view" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium underline">
                         تغيير كلمة المرور؟
                     </button>
                 </div>
@@ -83,34 +86,35 @@
         </div>
     </div>
 
-    <!-- Dashboard Screen (Hidden by default) -->
+    <!-- Dashboard Screen -->
     <div id="dashboard-screen" class="hidden flex h-screen bg-slate-50 overflow-hidden">
         
         <!-- Sidebar -->
         <aside id="sidebar" class="fixed lg:static inset-y-0 right-0 w-72 bg-slate-900 text-slate-300 z-30 transform translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800 bg-slate-950">
-                <h1 class="text-xl font-bold text-white tracking-wide">لوحة التحكم</h1>
+            <div class="h-16 flex items-center justify-center border-b border-slate-800 bg-slate-950 px-4">
+                <h1 class="text-lg font-bold text-white tracking-wide truncate">نظام الإدارة</h1>
             </div>
 
             <div class="p-5 border-b border-slate-800 bg-slate-900/50">
                 <div class="flex items-center space-x-3 space-x-reverse">
-                    <div id="user-avatar" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">م</div>
-                    <div>
-                        <p id="user-name" class="text-sm font-medium text-white truncate w-40"></p>
+                    <div id="user-avatar" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0"></div>
+                    <div class="overflow-hidden">
+                        <p id="user-name" class="text-sm font-medium text-white truncate"></p>
                         <p id="user-role" class="text-xs text-slate-400 mt-1"></p>
                     </div>
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto py-4">
-                <div class="px-4 mb-4 flex space-x-2 space-x-reverse">
-                    <button id="btn-general" class="flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white">الرئيسية</button>
-                    <button id="btn-admin" class="hidden flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700">الإداريات</button>
+                <div class="px-4 mb-6 flex space-x-2 space-x-reverse">
+                    <button id="btn-general" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-indigo-600 text-white">الرئيسية</button>
+                    <button id="btn-admin" class="hidden flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-slate-800 hover:bg-slate-700 text-slate-400">الإداريات</button>
                 </div>
 
                 <div class="px-3">
+                    <p id="nav-label" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 px-3">القائمة الرئيسية</p>
                     <ul id="nav-list" class="space-y-1">
-                        <!-- Links injected here by JS -->
+                        <!-- Links will be here -->
                     </ul>
                 </div>
             </div>
@@ -126,22 +130,27 @@
         <div class="flex-1 flex flex-col min-w-0">
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 lg:px-8 border-b border-gray-200">
                 <div class="flex items-center">
-                    <button id="mobile-toggle" class="lg:hidden text-gray-500 hover:text-gray-700 ml-4 focus:outline-none">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    <button id="mobile-toggle" class="lg:hidden text-gray-500 hover:text-gray-700 ml-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                     </button>
-                    <h2 id="page-title" class="text-lg font-bold text-gray-800">الرئيسية</h2>
+                    <h2 id="page-title" class="text-lg font-bold text-gray-800 flex items-center">
+                        <span id="page-icon" class="ml-2 text-xl"></span>
+                        <span id="page-name">الرئيسية</span>
+                    </h2>
                 </div>
-                <div class="text-sm text-gray-500 flex items-center bg-gray-100 px-3 py-1.5 rounded-full">
-                    <span class="w-2 h-2 rounded-full bg-green-500 ml-2"></span> متصل
+                <div class="flex items-center">
+                    <div class="hidden sm:flex text-xs text-gray-500 items-center bg-gray-100 px-3 py-1.5 rounded-full border">
+                        <span class="w-2 h-2 rounded-full bg-green-500 ml-2"></span> اتصال آمن
+                    </div>
                 </div>
             </header>
 
-            <main class="flex-1 relative bg-gray-100">
-                <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 hidden">
+            <main class="flex-1 relative bg-gray-100/50">
+                <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/80 z-10 hidden">
                     <div class="loader mb-4"></div>
-                    <p class="text-gray-500 text-sm font-medium">جاري التحميل...</p>
+                    <p class="text-gray-600 font-bold animate-pulse text-sm">جاري جلب البيانات...</p>
                 </div>
-                <iframe id="main-iframe" src="about:blank" class="w-full h-full border-0"></iframe>
+                <iframe id="main-iframe" src="about:blank" class="w-full h-full border-0 transition-opacity duration-300 opacity-0"></iframe>
             </main>
         </div>
     </div>
@@ -149,13 +158,15 @@
     <script>
         const DB_URL = "https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches.json";
         
+        // الصفحة الرئيسية متاحة للجميع
         const GENERAL_LINKS = [
             { id: 'report', title: 'التقرير العام', url: 'https://hr-directions.github.io/Test/', icon: '📊' },
-            { id: 'transfers_statement', title: 'كشف حساب التحويلات', url: 'https://hr-directions.github.io/Test3/', icon: '💰' },
             { id: 'shift_reg', title: 'تسجيل الشيفت', url: 'https://hr-directions.github.io/Treasury-handover/', icon: '📝' },
         ];
 
+        // صفحات الإداريات متاحة للمراجع فقط
         const ADMIN_LINKS = [
+            { id: 'transfers_statement', title: 'كشف حساب التحويلات', url: 'https://hr-directions.github.io/Test3/', icon: '💰' },
             { id: 'employees', title: 'إدارة الموظفين', url: 'https://hr-directions.github.io/Test7/', icon: '👥' },
             { id: 'transfers_admin', title: 'إدارة التحويلات', url: 'https://hr-directions.github.io/Test6/', icon: '🔄' },
             { id: 'data_admin', title: 'إدارة البيانات', url: 'https://hr-directions.github.io/Test5/', icon: '📂' },
@@ -167,12 +178,9 @@
         let isChangePassView = false;
         let activeSection = 'general';
 
-        // Elements
         const loginScreen = document.getElementById('login-screen');
         const dashScreen = document.getElementById('dashboard-screen');
         const authForm = document.getElementById('auth-form');
-        const authTitle = document.getElementById('auth-title');
-        const authSubtitle = document.getElementById('auth-subtitle');
         const changePassFields = document.getElementById('change-pass-fields');
         const toggleBtn = document.getElementById('toggle-view');
         const authBtn = document.getElementById('auth-btn');
@@ -181,36 +189,32 @@
         const iframe = document.getElementById('main-iframe');
         const iframeLoader = document.getElementById('iframe-loader');
 
-        // Toggle Login / Change Password
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.onclick = () => {
             isChangePassView = !isChangePassView;
             authError.classList.add('hidden');
             authSuccess.classList.add('hidden');
-            
             if (isChangePassView) {
-                authTitle.innerText = "تحديث كلمة المرور";
-                authSubtitle.innerText = "أدخل بياناتك الحالية لتتمكن من التغيير";
+                document.getElementById('auth-title').innerText = "تحديث كلمة المرور";
                 changePassFields.classList.remove('hidden');
                 authBtn.innerText = "تحديث البيانات";
                 toggleBtn.innerText = "العودة لتسجيل الدخول";
             } else {
-                authTitle.innerText = "تسجيل الدخول للنظام";
-                authSubtitle.innerText = "أدخل كود الموظف وكلمة المرور للمتابعة";
+                document.getElementById('auth-title').innerText = "تسجيل الدخول للنظام";
                 changePassFields.classList.add('hidden');
                 authBtn.innerText = "تسجيل الدخول";
                 toggleBtn.innerText = "تغيير كلمة المرور؟";
             }
-        });
+        };
 
-        // Auth Logic
-        authForm.addEventListener('submit', async (e) => {
+        authForm.onsubmit = async (e) => {
             e.preventDefault();
             authError.classList.add('hidden');
+            authSuccess.classList.add('hidden');
             const code = document.getElementById('auth-code').value;
             const pass = document.getElementById('auth-pass').value;
             
             authBtn.disabled = true;
-            authBtn.innerHTML = '<span class="loader" style="width:20px; height:20px; border-width:2px"></span>';
+            authBtn.innerHTML = 'جاري التحقق...';
 
             try {
                 const response = await fetch(DB_URL);
@@ -220,21 +224,17 @@
 
                 for (const [key, val] of Object.entries(data)) {
                     if (val.code === code && val.password === pass) {
-                        userKey = key;
-                        userObj = val;
-                        break;
+                        userKey = key; userObj = val; break;
                     }
                 }
 
-                if (!userObj) {
-                    throw new Error("بيانات الدخول غير صحيحة");
-                }
+                if (!userObj) throw new Error("الكود أو كلمة المرور الحالية غير صحيحة");
 
                 if (isChangePassView) {
                     const newP = document.getElementById('new-pass').value;
                     const confirmP = document.getElementById('confirm-pass').value;
-                    if (newP !== confirmP) throw new Error("كلمات المرور غير متطابقة");
-                    if (newP.length < 4) throw new Error("كلمة المرور قصيرة جداً");
+                    if (!newP || newP.length < 4) throw new Error("كلمة المرور الجديدة يجب أن تكون 4 أرقام على الأقل");
+                    if (newP !== confirmP) throw new Error("كلمات المرور الجديدة غير متطابقة");
 
                     await fetch(`https://sample-firebase-ai-app-e4260-default-rtdb.firebaseio.com/branches/${userKey}.json`, {
                         method: 'PATCH',
@@ -255,7 +255,7 @@
                 authBtn.disabled = false;
                 authBtn.innerText = isChangePassView ? "تحديث البيانات" : "تسجيل الدخول";
             }
-        });
+        };
 
         function initDashboard() {
             loginScreen.classList.add('hidden');
@@ -268,8 +268,19 @@
                 document.getElementById('btn-admin').classList.remove('hidden');
             }
 
-            renderLinks(GENERAL_LINKS);
-            loadPage(GENERAL_LINKS[0]);
+            switchSection('general');
+        }
+
+        function switchSection(section) {
+            activeSection = section;
+            const isGen = section === 'general';
+            document.getElementById('btn-general').className = isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white';
+            document.getElementById('btn-admin').className = !isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white';
+            document.getElementById('nav-label').innerText = isGen ? 'القائمة الرئيسية' : 'إدارة ومراجعة البيانات';
+            
+            const links = isGen ? GENERAL_LINKS : ADMIN_LINKS;
+            renderLinks(links);
+            loadPage(links[0]);
         }
 
         function renderLinks(links) {
@@ -278,9 +289,9 @@
             links.forEach(link => {
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <button class="nav-item w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-lg transition-colors text-right hover:bg-slate-800" data-id="${link.id}">
-                        <span class="text-lg">${link.icon}</span>
-                        <span class="font-medium text-sm">${link.title}</span>
+                    <button class="nav-item w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all text-right hover:bg-slate-800 text-slate-400 font-medium" data-id="${link.id}">
+                        <span class="text-xl">${link.icon}</span>
+                        <span class="text-sm">${link.title}</span>
                     </button>
                 `;
                 li.querySelector('button').onclick = () => loadPage(link);
@@ -289,52 +300,31 @@
         }
 
         function loadPage(link) {
-            document.getElementById('page-title').innerText = link.title;
+            document.getElementById('page-name').innerText = link.title;
+            document.getElementById('page-icon').innerText = link.icon;
             iframeLoader.classList.remove('hidden');
+            iframe.style.opacity = '0';
             iframe.src = link.url;
-            iframe.onload = () => iframeLoader.classList.add('hidden');
+            iframe.onload = () => {
+                iframeLoader.classList.add('hidden');
+                iframe.style.opacity = '1';
+            };
             
-            // Highlight active
             document.querySelectorAll('.nav-item').forEach(btn => {
-                if (btn.dataset.id === link.id) {
-                    btn.classList.add('bg-indigo-600', 'text-white');
-                } else {
-                    btn.classList.remove('bg-indigo-600', 'text-white');
-                }
+                if (btn.dataset.id === link.id) btn.classList.add('nav-active');
+                else btn.classList.remove('nav-active');
             });
 
-            // Close mobile sidebar
             document.getElementById('sidebar').classList.add('translate-x-full');
         }
 
-        // Section Switchers
-        document.getElementById('btn-general').onclick = () => {
-            activeSection = 'general';
-            document.getElementById('btn-general').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white';
-            document.getElementById('btn-admin').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300';
-            renderLinks(GENERAL_LINKS);
-            loadPage(GENERAL_LINKS[0]);
-        };
-
-        document.getElementById('btn-admin').onclick = () => {
-            activeSection = 'admin';
-            document.getElementById('btn-admin').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white';
-            document.getElementById('btn-general').className = 'flex-1 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300';
-            renderLinks(ADMIN_LINKS);
-            loadPage(ADMIN_LINKS[0]);
-        };
-
-        // Mobile Toggle
-        document.getElementById('mobile-toggle').onclick = () => {
-            document.getElementById('sidebar').classList.toggle('translate-x-full');
-        };
-
-        // Logout
-        document.getElementById('logout-btn').onclick = () => {
-            location.reload();
-        };
+        document.getElementById('btn-general').onclick = () => switchSection('general');
+        document.getElementById('btn-admin').onclick = () => switchSection('admin');
+        document.getElementById('mobile-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('translate-x-full');
+        document.getElementById('logout-btn').onclick = () => location.reload();
 
     </script>
 </body>
 </html>
+
 
