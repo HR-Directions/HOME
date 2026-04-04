@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -13,6 +14,7 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .nav-active { background-color: #4f46e5 !important; color: white !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .hidden-access { display: none !important; }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -21,7 +23,7 @@
         <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div class="bg-indigo-600 p-6 text-center">
                 <h2 id="auth-title" class="text-2xl font-bold text-white">نظام الإدارة المالية</h2>
-                <p id="auth-subtitle" class="text-indigo-100 mt-2 text-sm">تسجيل الدخول الآمن للموظفين</p>
+                <p id="auth-subtitle" class="text-indigo-100 mt-2 text-sm">تسجيل دخول آمن</p>
             </div>
             
             <div class="p-8">
@@ -56,9 +58,7 @@
                 </form>
 
                 <div class="mt-6 text-center">
-                    <button id="toggle-view" class="text-sm text-indigo-600 hover:underline font-semibold">
-                        تغيير كلمة المرور؟
-                    </button>
+                    <button id="toggle-view" class="text-sm text-indigo-600 hover:underline font-semibold">تغيير كلمة المرور؟</button>
                 </div>
             </div>
         </div>
@@ -83,7 +83,7 @@
             </div>
 
             <div class="flex-1 overflow-y-auto py-4">
-                <div class="px-4 mb-6 flex space-x-2 space-x-reverse">
+                <div id="nav-tabs-container" class="px-4 mb-6 flex space-x-2 space-x-reverse">
                     <button id="btn-general" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all">الرئيسية</button>
                     <button id="btn-admin" class="hidden flex-1 py-2 text-xs font-bold rounded-lg transition-all">الإداريات</button>
                 </div>
@@ -109,18 +109,17 @@
                     </button>
                     <h2 id="page-title" class="text-lg font-bold text-gray-800 flex items-center">
                         <span id="page-icon" class="ml-2 text-xl"></span>
-                        <span id="page-name">الرئيسية</span>
+                        <span id="page-name">تحميل...</span>
                     </h2>
                 </div>
                 <div class="text-xs text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-full border border-green-100 flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-green-500 ml-2 animate-pulse"></span> اتصال مشفر
+                    <span class="w-2 h-2 rounded-full bg-green-500 ml-2 animate-pulse"></span> اتصال نشط
                 </div>
             </header>
 
             <main class="flex-1 relative bg-gray-50">
                 <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-20 hidden">
                     <div class="loader mb-4"></div>
-                    <p class="text-gray-600 font-bold animate-pulse text-sm">جاري جلب البيانات...</p>
                 </div>
                 <iframe id="main-iframe" src="about:blank" class="w-full h-full border-0 opacity-0 transition-opacity"></iframe>
             </main>
@@ -179,19 +178,19 @@
                     }
                 }
 
-                if (!foundUser) throw new Error("بيانات الدخول غير صحيحة");
+                if (!foundUser) throw new Error("كود الموظف أو كلمة المرور غير صحيحة");
 
                 if (isChangePassView) {
                     const newP = document.getElementById('new-pass').value;
                     const confirmP = document.getElementById('confirm-pass').value;
-                    if (newP.length < 4 || newP !== confirmP) throw new Error("تحقق من مطابقة كلمة المرور الجديدة (4 أرقام على الأقل)");
+                    if (newP.length < 4 || newP !== confirmP) throw new Error("تأكد من مطابقة كلمة المرور (4 أرقام على الأقل)");
 
                     await fetch(DB_URL.replace('.json', `/${foundKey}.json`), {
                         method: 'PATCH',
                         body: JSON.stringify({ password: newP, lastUpdate: new Date().toISOString() })
                     });
                     
-                    document.getElementById('auth-success').innerText = "تم التحديث بنجاح!";
+                    document.getElementById('auth-success').innerText = "تم تحديث كلمة المرور بنجاح!";
                     document.getElementById('auth-success').classList.remove('hidden');
                     setTimeout(() => location.reload(), 1500);
                 } else {
@@ -215,46 +214,66 @@
             document.getElementById('user-role').innerText = currentUser.type;
             document.getElementById('user-avatar').innerText = currentUser.name.charAt(0);
 
+            // الحماية القصوى: إخفاء الزر نهائياً إذا لم يكن مراجعاً
+            const btnAdmin = document.getElementById('btn-admin');
             if (currentUser.type === 'مراجع') {
-                document.getElementById('btn-admin').classList.remove('hidden');
-                switchNav('admin');
+                btnAdmin.classList.remove('hidden'); // إظهار الزر
+                switchNav('admin'); // الدخول الافتراضي للمراجع للإداريات
             } else {
-                switchNav('general');
+                btnAdmin.remove(); // حذف العنصر نهائياً من الكود للمستخدم العادي (أكثر أماناً)
+                switchNav('general'); // الدخول الافتراضي للفروع للرئيسية
             }
         }
 
         function switchNav(type) {
+            // منع الوصول للإداريات برمجياً إذا كان المستخدم فرع
+            if (type === 'admin' && currentUser.type !== 'مراجع') return;
+
             const isGen = type === 'general';
-            document.getElementById('btn-general').className = isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400';
-            document.getElementById('btn-admin').className = !isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400';
-            document.getElementById('nav-label').innerText = isGen ? 'القائمة الرئيسية' : 'أدوات الإدارة';
+            document.getElementById('btn-general').className = isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow-inner' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white';
+            
+            const btnAdmin = document.getElementById('btn-admin');
+            if(btnAdmin) {
+                btnAdmin.className = !isGen ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow-inner' : 'flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-white';
+            }
+
+            document.getElementById('nav-label').innerText = isGen ? 'القائمة الرئيسية' : 'أدوات المراجعة';
             
             const links = isGen ? GENERAL_LINKS : ADMIN_LINKS;
             const list = document.getElementById('nav-list');
             list.innerHTML = '';
             
             links.forEach(link => {
-                const btn = document.createElement('button');
-                btn.className = "nav-item w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 mb-1";
-                btn.innerHTML = `<span class="text-xl">${link.icon}</span><span class="text-sm font-bold">${link.title}</span>`;
-                btn.onclick = () => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <button class="nav-item w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 hover:text-white group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">${link.icon}</span>
+                        <span class="text-sm font-bold">${link.title}</span>
+                    </button>
+                `;
+                li.onclick = () => {
                     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
-                    btn.classList.add('nav-active');
-                    document.getElementById('page-name').innerText = link.title;
-                    document.getElementById('page-icon').innerText = link.icon;
-                    document.getElementById('iframe-loader').classList.remove('hidden');
-                    const frame = document.getElementById('main-iframe');
-                    frame.style.opacity = '0';
-                    frame.src = link.url;
-                    frame.onload = () => {
-                        document.getElementById('iframe-loader').classList.add('hidden');
-                        frame.style.opacity = '1';
-                    };
-                    if(window.innerWidth < 1024) document.getElementById('sidebar').classList.add('translate-x-full');
+                    li.querySelector('button').classList.add('nav-active');
+                    loadIframe(link);
                 };
-                list.appendChild(btn);
+                list.appendChild(li);
             });
-            list.firstChild.click();
+            // تحميل أول عنصر تلقائياً
+            list.querySelector('li').click();
+        }
+
+        function loadIframe(link) {
+            document.getElementById('page-name').innerText = link.title;
+            document.getElementById('page-icon').innerText = link.icon;
+            document.getElementById('iframe-loader').classList.remove('hidden');
+            const frame = document.getElementById('main-iframe');
+            frame.style.opacity = '0';
+            frame.src = link.url;
+            frame.onload = () => {
+                document.getElementById('iframe-loader').classList.add('hidden');
+                frame.style.opacity = '1';
+            };
+            if(window.innerWidth < 1024) document.getElementById('sidebar').classList.add('translate-x-full');
         }
 
         document.getElementById('toggle-view').onclick = () => {
@@ -266,9 +285,13 @@
         };
 
         document.getElementById('btn-general').onclick = () => switchNav('general');
-        document.getElementById('btn-admin').onclick = () => switchNav('admin');
+        const btnAdmin = document.getElementById('btn-admin');
+        if(btnAdmin) btnAdmin.onclick = () => switchNav('admin');
+
         document.getElementById('mobile-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('translate-x-full');
         document.getElementById('logout-btn').onclick = () => location.reload();
     </script>
 </body>
 </html>
+
+
